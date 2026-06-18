@@ -9,7 +9,7 @@ let errorCount = 0;
 function setStatus(message, type = "info") { els.status.textContent = message; els.status.dataset.type = type; }
 function storageGet() { return new Promise((resolve) => chrome.storage.local.get({ [STORAGE_KEY]: [] }, (r) => resolve(r[STORAGE_KEY] || []))); }
 function storageSet(leads) { return new Promise((resolve) => chrome.storage.local.set({ [STORAGE_KEY]: leads }, resolve)); }
-function leadKey(lead) { return (lead.gmaps_link || "").split("?")[0] || `${(lead.name || "").toLowerCase()}|${(lead.brief_location || "").toLowerCase()}`; }
+function leadKey(lead) { const name = (lead.name || "").trim().toLowerCase(); const address = (lead.brief_location || "").trim().toLowerCase(); if (name && name !== "result" && address) return `${name}|${address}`; return (lead.gmaps_link || "").split("?")[0].split("#")[0]; }
 function csvEscape(value) { const text = String(value || ""); return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; }
 function toCsv(leads) { return [CSV_COLUMNS.join(","), ...leads.map((lead, i) => [i + 1, lead.name, lead.brief_location, lead.email, lead.ph, lead.ratings, lead.no_of_ratings, lead.website_status, lead.website_url, lead.gmaps_link, lead.notes].map(csvEscape).join(","))].join("\n"); }
 function render(leads) { els.savedCount.textContent = leads.length; els.errorCount.textContent = errorCount; els.resultsBody.innerHTML = leads.map((lead, i) => `<tr>${[i + 1, lead.name, lead.brief_location, lead.email, lead.ph, lead.ratings, lead.no_of_ratings, lead.website_status, lead.website_url, lead.gmaps_link, lead.notes].map((v) => `<td>${String(v || "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}</td>`).join("")}</tr>`).join(""); }

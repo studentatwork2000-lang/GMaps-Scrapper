@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Maps Lead Checker</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div>
+          <h1>Maps Lead Checker</h1>
+          <p>Manual Google Maps lead review</p>
+        </div>
+        <span id="savedCount" class="count">0 saved</span>
+      </header>
+
+      <section id="status" class="status" role="status">Open a Google Maps business profile, then extract.</section>
+
+      <section class="actions" aria-label="Lead actions">
+        <button id="extractBtn" type="button">Extract Current Business</button>
+        <button id="saveBtn" type="button" class="secondary">Save Lead</button>
+        <button id="exportBtn" type="button" class="secondary">Export CSV</button>
+        <button id="clearBtn" type="button" class="danger">Clear Saved Leads</button>
+      </section>
+
+      <form id="leadForm" class="lead-form">
+        <label>Name<input id="name" name="name" type="text" autocomplete="off"></label>
+        <label>Brief location / address<input id="brief_location" name="brief_location" type="text" autocomplete="off"></label>
+        <label>Email<input id="email" name="email" type="email" autocomplete="off"></label>
+        <label>Phone<input id="ph" name="ph" type="text" autocomplete="off"></label>
+        <div class="grid-two">
+          <label>Ratings<input id="ratings" name="ratings" type="text" autocomplete="off"></label>
+          <label>No. of ratings<input id="no_of_ratings" name="no_of_ratings" type="text" autocomplete="off"></label>
+        </div>
+        <label>Website status
+          <select id="website_status" name="website_status">
+            <option value="NO WEBSITE">NO WEBSITE</option>
+            <option value="SOCIAL ONLY">SOCIAL ONLY</option>
+            <option value="ORDERING PLATFORM ONLY">ORDERING PLATFORM ONLY</option>
+            <option value="HAS WEBSITE">HAS WEBSITE</option>
+            <option value="UNCLEAR">UNCLEAR</option>
+          </select>
+        </label>
+        <label>Website URL<input id="website_url" name="website_url" type="url" autocomplete="off"></label>
+        <label>Google Maps link<input id="gmaps_link" name="gmaps_link" type="url" autocomplete="off"></label>
+        <label>Notes<textarea id="notes" name="notes" rows="3"></textarea></label>
+      </form>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

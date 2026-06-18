@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Maps Lead Checker Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+  </head>
+  <body>
+    <main class="dashboard">
+      <header class="topbar">
+        <div>
+          <h1>Maps Lead Checker Dashboard</h1>
+          <p>Open a Google Maps search results page, then start the automatic crawler.</p>
+        </div>
+        <div class="stats">
+          <span><strong id="savedCount">0</strong> saved</span>
+          <span><strong id="errorCount">0</strong> errors</span>
+        </div>
+      </header>
+
+      <section class="panel controls">
+        <label>Max results <input id="maxResults" type="number" min="1" value="50"></label>
+        <label>Delay (ms) <input id="delayMs" type="number" min="800" step="100" value="1800"></label>
+        <button id="startBtn" type="button">Start Crawl</button>
+        <button id="pauseBtn" type="button" class="secondary">Pause</button>
+        <button id="resumeBtn" type="button" class="secondary">Resume</button>
+        <button id="stopBtn" type="button" class="danger">Stop</button>
+        <button id="exportBtn" type="button" class="secondary">Export CSV</button>
+        <button id="clearBtn" type="button" class="danger">Clear Saved Leads</button>
+      </section>
+
+      <section id="status" class="status" role="status">Idle. Waiting to start.</section>
+
+      <section class="panel table-panel">
+        <div class="table-header">
+          <h2>Live Results</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>sl no</th><th>name</th><th>brief location</th><th>email</th><th>ph</th><th>ratings</th><th>no of ratings</th><th>website status</th><th>website url</th><th>gmaps link</th><th>notes</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script src="dashboard.js"></script>
+  </body>
+</html>

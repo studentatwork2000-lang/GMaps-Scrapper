@@ -165,6 +165,7 @@ exportBtn.addEventListener("click", async () => {
 });
 
 clearBtn.addEventListener("click", async () => {
+  if (!confirm("Clear all saved leads from this browser?")) return;
   await storageSet([]);
   await updateSavedCount();
   setStatus("Saved leads cleared.", "success");

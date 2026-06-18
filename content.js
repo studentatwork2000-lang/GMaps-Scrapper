@@ -3,10 +3,10 @@
   const ORDERING_DOMAINS = ["ubereats", "doordash", "skipthedishes", "grubhub", "deliveroo", "just-eat"];
 
   function textOf(node) {
-    return (node && (node.innerText || node.textContent) || "").replace(/\s+/g, " ").trim();
+    return ((node && (node.innerText || node.textContent)) || "").replace(/\s+/g, " ").trim();
   }
 
-  function visible(node) {
+  function isVisible(node) {
     if (!node || !(node instanceof Element)) return false;
     const style = window.getComputedStyle(node);
     const rect = node.getBoundingClientRect();
@@ -26,64 +26,84 @@
     }
   }
 
-  function firstVisibleBySelectors(selectors) {
-    for (const selector of selectors) {
-      const node = Array.from(document.querySelectorAll(selector)).find(visible);
-      const text = textOf(node);
-      if (text) return text;
-    }
-    return "";
+  function cleanedLabel(node) {
+    return `${node.getAttribute("aria-label") || ""} ${textOf(node)} ${node.getAttribute("data-item-id") || ""}`
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
-  function findByAriaOrText(keywords, selectors = "button, a, div[role='button'], span, div") {
+  function visibleNodes(selectors) {
+    return Array.from(document.querySelectorAll(selectors)).filter(isVisible);
+  }
+
+  function findByAriaTextOrData(keywords, selectors = "button, a, div[role='button'], span, div") {
     const lowerKeywords = keywords.map((keyword) => keyword.toLowerCase());
-    return Array.from(document.querySelectorAll(selectors)).find((node) => {
-      if (!visible(node)) return false;
-      const haystack = `${node.getAttribute("aria-label") || ""} ${textOf(node)} ${node.getAttribute("data-item-id") || ""}`.toLowerCase();
+    return visibleNodes(selectors).find((node) => {
+      const haystack = cleanedLabel(node).toLowerCase();
       return lowerKeywords.some((keyword) => haystack.includes(keyword));
     });
   }
 
+  function stripLeadLabel(value, label) {
+    return (value || "").replace(new RegExp(`^${label}:?\\s*`, "i"), "").trim();
+  }
+
   function extractName() {
-    return firstVisibleBySelectors([
+    const candidates = [
       "h1[aria-level='1']",
-      "h1",
+      "h1.DUwDvf",
       "[role='main'] h1",
-      "div[aria-label][role='main'] h1"
-    ]);
+      "h1"
+    ];
+
+    for (const selector of candidates) {
+      const text = textOf(visibleNodes(selector)[0]);
+      if (text) return text;
+    }
+
+    const main = document.querySelector("[role='main']");
+    const mainText = textOf(main).split(" ").slice(0, 8).join(" ");
+    return mainText || "";
   }
 
   function extractAddress() {
-    const addressNode = findByAriaOrText(["address"], "button, div[role='button'], a");
-    const label = addressNode && (addressNode.getAttribute("aria-label") || textOf(addressNode));
-    return (label || "").replace(/^address:\s*/i, "").trim();
+    const addressNode = findByAriaTextOrData(["address"], "button, div[role='button'], a");
+    return stripLeadLabel(addressNode ? cleanedLabel(addressNode) : "", "address");
   }
 
   function extractWebsite() {
-    const anchors = Array.from(document.querySelectorAll("a[href]")).filter(visible);
+    const anchors = visibleNodes("a[href]");
     const websiteAnchor = anchors.find((anchor) => {
-      const haystack = `${anchor.getAttribute("aria-label") || ""} ${textOf(anchor)} ${anchor.href}`.toLowerCase();
-      return haystack.includes("website") && !anchor.href.includes("google.com/maps");
+      const haystack = cleanedLabel(anchor).toLowerCase();
+      const href = anchor.getAttribute("href") || "";
+      return haystack.includes("website") && !href.includes("/maps/");
     });
-    return normalizedUrl(websiteAnchor && websiteAnchor.href);
+
+    if (websiteAnchor) return normalizedUrl(websiteAnchor.href);
+
+    const dataWebsite = anchors.find((anchor) => (anchor.getAttribute("data-item-id") || "").toLowerCase().includes("authority"));
+    return normalizedUrl(dataWebsite && dataWebsite.href);
   }
 
   function extractPhone() {
     const phonePattern = /(?:\+?\d[\d\s().-]{7,}\d)/;
-    const phoneNode = findByAriaOrText(["phone", "call"], "button, div[role='button'], a, span");
-    const label = phoneNode && `${phoneNode.getAttribute("aria-label") || ""} ${textOf(phoneNode)}`;
-    const ariaMatch = label && label.match(phonePattern);
-    if (ariaMatch) return ariaMatch[0].trim();
+    const phoneNode = findByAriaTextOrData(["phone", "call"], "button, div[role='button'], a, span");
+    const label = phoneNode ? cleanedLabel(phoneNode) : "";
+    const labelMatch = label.match(phonePattern);
+    if (labelMatch) return labelMatch[0].trim();
 
-    const bodyMatch = textOf(document.body).match(phonePattern);
+    const mainText = textOf(document.querySelector("[role='main']") || document.body);
+    const bodyMatch = mainText.match(phonePattern);
     return bodyMatch ? bodyMatch[0].trim() : "";
   }
 
   function extractRatingInfo() {
-    const ratingNode = findByAriaOrText(["stars", "reviews", "rating"], "span, div, button");
-    const text = ratingNode ? `${ratingNode.getAttribute("aria-label") || ""} ${textOf(ratingNode)}` : textOf(document.body);
-    const ratingMatch = text.match(/([1-5](?:\.\d)?)\s*(?:stars?|rating)?/i);
-    const reviewsMatch = text.match(/([\d,]+)\s*(?:reviews?|ratings?)/i);
+    const mainText = textOf(document.querySelector("[role='main']") || document.body);
+    const ratingNode = findByAriaTextOrData(["stars", "reviews", "rating"], "span, div, button");
+    const combined = `${ratingNode ? cleanedLabel(ratingNode) : ""} ${mainText}`;
+    const ratingMatch = combined.match(/(?:rated\s*)?([1-5](?:\.\d)?)\s*(?:stars?|rating)?/i);
+    const reviewsMatch = combined.match(/\(?([\d,]+)\)?\s*(?:reviews?|ratings?)/i);
+
     return {
       ratings: ratingMatch ? ratingMatch[1] : "",
       no_of_ratings: reviewsMatch ? reviewsMatch[1].replace(/,/g, "") : ""
@@ -91,7 +111,8 @@
   }
 
   function extractEmail() {
-    const match = textOf(document.body).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    const mainText = textOf(document.querySelector("[role='main']") || document.body);
+    const match = mainText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
     return match ? match[0] : "";
   }
 
@@ -100,13 +121,18 @@
     const lowerUrl = url.toLowerCase();
     if (SOCIAL_DOMAINS.some((domain) => lowerUrl.includes(domain))) return "SOCIAL ONLY";
     if (ORDERING_DOMAINS.some((domain) => lowerUrl.includes(domain))) return "ORDERING PLATFORM ONLY";
-    if (/^https?:\/\//i.test(url)) return "HAS WEBSITE";
-    return "UNCLEAR";
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === "http:" || parsed.protocol === "https:" ? "HAS WEBSITE" : "UNCLEAR";
+    } catch (_) {
+      return "UNCLEAR";
+    }
   }
 
   function extractLead() {
     const website_url = extractWebsite();
     const ratingInfo = extractRatingInfo();
+
     return {
       name: extractName(),
       brief_location: extractAddress(),
@@ -125,5 +151,6 @@
     if (message && message.type === "EXTRACT_CURRENT_BUSINESS") {
       sendResponse({ ok: true, lead: extractLead() });
     }
+    return true;
   });
 })();
